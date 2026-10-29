@@ -17,6 +17,7 @@ rule integrityOfTransferFrom(address sender, address recipient, uint256 amount) 
     env e;
     
     require sender != recipient;
+    require amount != 0;
 
     uint256 allowanceBefore = allowance(sender, e.msg.sender);
     transferFrom(e, sender, recipient, amount);
@@ -40,6 +41,7 @@ function callFunctionWithParams(env e, method f, address from, address to) {
     uint256 amount;
 
     if (f.selector == sig:transfer(address, uint256).selector) {
+        require e.msg.sender == from;
         transfer(e, to, amount);
     } else if (f.selector == sig:allowance(address, address).selector) {
         allowance(e, from, to);
@@ -104,6 +106,7 @@ rule balanceChangesFromCertainFunctions(method f, address user){
         userBalanceBefore != userBalanceAfter => 
         (
             f.selector == sig:transfer(address, uint256).selector ||
+            f.selector == sig:transferFrom(address, address, uint256).selector ||
             f.selector == sig:mint(address, uint256).selector ||
             f.selector == sig:burn(address, uint256).selector)
         ),
@@ -117,5 +120,5 @@ rule onlyOwnersMayChangeTotalSupply(method f) {
     calldataarg args;
     f(e,args);
     uint256 totalSupplyAfter = totalSupply();
-    assert e.msg.sender == _owner() => totalSupplyAfter != totalSupplyBefore;
+    assert totalSupplyAfter != totalSupplyBefore => e.msg.sender == _owner() ;
 }
